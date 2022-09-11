@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lerner-bot
+
+  SAM Template for lerner-bot
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    Tracing: Active
+  Api:
+    TracingEnabled: True
+
+Parameters:
+  TelegramToken:
+    Type: String
+    Description: Telegram Token
+    Default: TELEGRAM_TOKEN_DUMMY_VALUE 
+  DBConnectionUser:
+    Type: String
+    Description: DB connetion - user
+    Default: DB_USER
+  DBConnectionPassword:
+    Type: String
+    Description: DB connetion - password
+    Default: DB_PASS
+  DBConnectionHost:
+    Type: String
+    Description: DB connetion - host
+    Default: DB_HOST
+  DBConnectionPort:
+    Type: String
+    Description: DB connetion - port
+    Default: DB_PORT 
+  DBConnectionDatabaseName:
+    Type: String
+    Description: DB connetion - database name
+    Default: DB_NAME                        
+
+Resources:
+  LernerBotFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: lerner_bot/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+        - x86_64      
+      Policies:
+      # Give the Lambda service access to translate service
+      - Statement:
+        - Sid: TranslatePolicy
+          Effect: Allow
+          Action:
+          - translate:TranslateText
+          Resource: '*'
+  
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Ref TelegramToken
+          DB_CONN_USER: !Ref DBConnectionUser
+          DB_CONN_PASS: !Ref DBConnectionPassword
+          DB_CONN_HOST: !Ref DBConnectionHost  
+          DB_CONN_PORT: !Ref DBConnectionPort
+          DB_CONN_DB_NAME: !Ref DBConnectionDatabaseName  
+      Events:
+        MainRoute:
+          Type: HttpApi # More info about HttpApi Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /main
+            Method: any
+
+Outputs:
+  # ServerlessHttpApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  LernerBotApi:
+    Description: "API Gateway endpoint URL for Prod stage for main function"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/main/"
+  LernerBotFunction:
+    Description: "Bot Lambda Function ARN"
+    Value: !GetAtt LernerBotFunction.Arn
+  LernerBotFunctionIamRole:
+    Description: "Implicit IAM Role created for Bot Lambda function"
+    Value: !GetAtt LernerBotFunctionRole.Arn
